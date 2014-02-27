@@ -289,4 +289,10 @@ typedef NS_ENUM(NSUInteger, BITCrashManagerStatus) {
  */
 - (void)generateTestCrash;
 
+/**
+ * Generates a crash report as if the app had crashed at the current execution point
+ * without crashing the app. Useful for logging bugs that can be handled gracefully.
+ */
+- (void)generateReportWithoutCrashing;
+
 @end

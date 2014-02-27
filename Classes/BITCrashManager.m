@@ -489,13 +489,12 @@ NSString *const kBITCrashManagerStatus = @"BITCrashManagerStatus";
 
 
 #pragma mark - PLCrashReporter
-
 /**
- *	 Process new crash reports provided by PLCrashReporter
- *
  * Parse the new crash report and gather additional meta data from the app which will be stored along the crash report
  */
-- (void) handleCrashReport {
+- (void)handleCrashReportWithLoadCrashDataBlock:(NSData *(^)(NSError *__autoreleasing *error))loadCrashData
+{
+  
   NSError *error = NULL;
 	
   if (!self.plCrashReporter) return;
@@ -510,7 +509,7 @@ NSString *const kBITCrashManagerStatus = @"BITCrashManagerStatus";
     [self saveSettings];
     
     // Try loading the crash report
-    NSData *crashData = [[NSData alloc] initWithData:[self.plCrashReporter loadPendingCrashReportDataAndReturnError: &error]];
+    NSData *crashData = loadCrashData(&error);
     
     NSString *cacheFilename = [NSString stringWithFormat: @"%.0f", [NSDate timeIntervalSinceReferenceDate]];
     
@@ -570,10 +569,28 @@ NSString *const kBITCrashManagerStatus = @"BITCrashManagerStatus";
   if ([_fileManager fileExistsAtPath:_analyzerInProgressFile]) {
     [_fileManager removeItemAtPath:_analyzerInProgressFile error:&error];
   }
-
+  
   [self saveSettings];
   
   [self.plCrashReporter purgePendingCrashReport];
+}
+
+/**
+ *	 Process new crash reports provided by PLCrashReporter
+ */
+- (void) handleCrashReport {
+  [self handleCrashReportWithLoadCrashDataBlock:^NSData *(NSError *__autoreleasing *error) {
+    return [[NSData alloc] initWithData:[self.plCrashReporter loadPendingCrashReportDataAndReturnError:error]];
+  }];
+}
+
+/**
+ * Process a live crash report without crashing
+ */
+- (void)generateReportWithoutCrashing {
+  [self handleCrashReportWithLoadCrashDataBlock:^NSData *(NSError *__autoreleasing *error) {
+    return [[NSData alloc] initWithData:[self.plCrashReporter generateLiveReportAndReturnError:error]];
+  }];
 }
 
 /**
